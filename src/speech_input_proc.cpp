@@ -255,7 +255,13 @@ public:
 	SpeechDetStatus Open()
 	{
 		// Speech recognizer setup
-	    auto config = SpeechConfig::FromSubscription("2145ab2dc7ec4f82a12e231d578f7468", "westus");
+		const char* env_key = std::getenv("MS_COGNTIVE_SUB_KEY");
+		const char* env_region = std::getenv("MS_COGNTIVE_SUB_REGION");
+		if (!env_key || !env_region) {
+			RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "ERROR: MS Cogntive env vars MS_COGNTIVE_SUB_KEY/MS_COGNTIVE_SUB_REGION not set");
+			return SpeechDetStatus_Error;
+		}
+		auto config = SpeechConfig::FromSubscription(env_key, env_region);
 		_pushAudioInput = AudioInputStream::CreatePushStream();
 		_recognizer = SpeechRecognizer::FromConfig(config, AudioConfig::FromStreamInput(_pushAudioInput));
 		_open = true;
@@ -284,6 +290,7 @@ public:
 	SpeechDetStatus Stop()
 	{
 		// Not supported by RecognizeOnceAsync mode
+		return SpeechDetStatus_Error;
 	}
 
 	SpeechDetStatus ProcessData(uint8_t *pData, int len)
@@ -331,6 +338,7 @@ SpeechInputProc::SpeechInputProc():
 		_mic_led_ring(nullptr),
 		_audio_capture(nullptr)
 {
+	// fix
 	_installed_wake_word_detectors[WakeWordDetector_HeyRobot] = "/home/ubuntu/ms_voice/2788310f-4ac6-4b58-9210-fe3e44f2a6f8.table";
 }
 
@@ -345,7 +353,6 @@ SpeechInputProc::~SpeechInputProc()
 	}
 }
 
-
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
 
@@ -359,14 +366,14 @@ SpeechProcStatus SpeechInputProc::Open()
 
 	int ret = _audio_capture->Open(AUDIO_DEVICE, SAMPLE_RATE);
 	if (ret) {
-        fprintf (stderr, "ERROR: Could not open audio capture device (%s)\n", snd_strerror(ret));
+		RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "ERROR; Could not open audio capture device (%s)\n", snd_strerror(ret));
         return SpeechProcStatus_Error;
 	}
 
 	_mic_led_ring = new RespeakerPixelRing();
 	ret = _mic_led_ring->Open();
 	if (ret) {
-        fprintf (stderr, "ERROR: Could not open Respeaker LED device (%d)\n", ret);
+		RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "ERROR; Could not open Respeaker LED device (%d)\n", ret);
         _audio_capture->Close();
         return SpeechProcStatus_Error;
 	}

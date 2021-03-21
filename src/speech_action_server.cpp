@@ -4,6 +4,9 @@
 #include "speech_action_interfaces/action/recognize.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
+#include "std_msgs/msg/string.hpp"
+#include "std_msgs/msg/bool.hpp"
+#include "std_msgs/msg/int32.hpp"
 #include "rclcpp_components/register_node_macro.hpp"
 
 #include "speech_input_proc.h"
@@ -30,7 +33,8 @@ public:
       std::bind(&SpeechInputActionServer::handle_cancel, this, _1),
       std::bind(&SpeechInputActionServer::handle_accepted, this, _1));
 
-    this->vad_publisher_ = this->create_publisher<std_msgs::msg::String>("topic", 10);
+    vad_publisher_ = this->create_publisher<std_msgs::msg::Bool>("/speech_detect/vad", 2);
+    aoa_publisher_ = this->create_publisher<std_msgs::msg::Int32>("/speech_detect/aoa", 2);
 
     speech_proc_ = new SpeechInputProc();
     speech_proc_->Open();
@@ -62,11 +66,17 @@ public:
   void voice_detect_change(bool voice_detected)
   {
 	  RCLCPP_INFO(this->get_logger(), "Voice detected: %d", voice_detected);
+	  auto message = std_msgs::msg::Bool();
+      message.data = voice_detected;
+      vad_publisher_->publish(message);
   }
 
   void angle_of_arrival_change(int32_t angle)
   {
 	  RCLCPP_INFO(this->get_logger(), "Angle of Arrival: %d", angle);
+	  auto message = std_msgs::msg::Int32();
+      message.data = angle;
+      aoa_publisher_->publish(message);
   }
 
 private:
@@ -75,6 +85,9 @@ private:
   std::shared_ptr<GoalHandleRecognize> goal_handle_;
 
   SpeechInputProc *speech_proc_;
+
+  rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr vad_publisher_;
+  rclcpp::Publisher<std_msgs::msg::Int32>::SharedPtr aoa_publisher_;
 
   rclcpp_action::GoalResponse handle_goal(
     const rclcpp_action::GoalUUID & uuid,
