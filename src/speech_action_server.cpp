@@ -36,6 +36,7 @@ public:
     vad_publisher_ = this->create_publisher<std_msgs::msg::Bool>("/speech_detect/vad", 2);
     aoa_publisher_ = this->create_publisher<std_msgs::msg::Int32>("/speech_detect/aoa", 2);
 
+    RCLCPP_INFO(this->get_logger(), "Initializing speech input processor");
     speech_proc_ = new SpeechInputProc();
     speech_proc_->Open();
     speech_proc_->WakeWordEnable(SpeechInputProc::WakeWordDetector_HeyRobot, true);
@@ -52,15 +53,16 @@ public:
 
   void speech_recog_finished(SpeechProcStatus status, std::string text)
   {
+	  auto result = std::make_shared<Recognize::Result>();
 	  if (status == SpeechProcStatus_Ok) {
 		  RCLCPP_INFO(this->get_logger(), "Speech recognized:  %s", text.c_str());
-		  auto result = std::make_shared<Recognize::Result>();
 		  result->text = text;
-		  goal_handle_->succeed(result);
 		  RCLCPP_INFO(this->get_logger(), "Goal succeeded");
 	  } else {
 		  RCLCPP_INFO(this->get_logger(), "Error recognizing speech");
+		  result->text = "ERROR";
 	  }
+	  goal_handle_->succeed(result);
   }
 
   void voice_detect_change(bool voice_detected)
@@ -110,18 +112,14 @@ private:
   {
     using namespace std::placeholders;
     goal_handle_ = goal_handle;
-    // this needs to return quickly to avoid blocking the executor, so spin up a new thread
-    //std::thread{std::bind(&SpeechInputActionServer::execute, this, _1), goal_handle}.detach();
-//    auto result = std::make_shared<Recognize::Result>();
+    const auto goal = goal_handle->get_goal();
+
     if (speech_proc_->RecognizeStart() == SpeechProcStatus_Error) {
 	  auto result = std::make_shared<Recognize::Result>();
 	  result->text = "ERROR";
 	  goal_handle_->succeed(result);
 	  RCLCPP_INFO(this->get_logger(), "Goal failed to start");
     }
-//    result->text = "blah blah";
-//    goal_handle->succeed(result);
-//    RCLCPP_INFO(this->get_logger(), "Goal succeeded");
   }
 
 };  // class SpeechInputActionServer

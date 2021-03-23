@@ -22,32 +22,36 @@ find_package(rclcpp REQUIRED)
 find_package(rclcpp_action REQUIRED)
 find_package(rclcpp_components REQUIRED)
 
-add_library(action_client SHARED
+set(client_library_name speech_input_client)
+
+add_library(${client_library_name} SHARED
   src/speech_action_client.cpp)
 
-target_include_directories(action_client PRIVATE
+target_include_directories(${client_library_name}  PRIVATE
   <BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   <INSTALL_INTERFACE:include>)
 
-ament_target_dependencies(action_client
+ament_target_dependencies(${client_library_name}
   "speech_action_interfaces"
   "rclcpp"
   "rclcpp_action"
   "rclcpp_components")
 
-rclcpp_components_register_node(action_client PLUGIN "speech_input_action_server::RecognizeActionClient" EXECUTABLE speech_action_client)
+rclcpp_components_register_node(${client_library_name} PLUGIN "speech_input_action_server::RecognizeActionClient" EXECUTABLE speech_input_action_client)
 install(TARGETS
-  action_client
+  ${client_library_name}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin)
 
-add_library(action_server SHARED
+set(server_library_name speech_input_server)
+
+add_library(${server_library_name} SHARED
   src/speech_action_server.cpp
   src/speech_input_proc.cpp
   src/respeaker_pixel_ring.cpp)
 
-target_include_directories(action_server PRIVATE
+target_include_directories(${server_library_name} PRIVATE
   <BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   <INSTALL_INTERFACE:include>)
 
@@ -55,23 +59,23 @@ target_include_directories(action_server PRIVATE
 include_directories(/home/ubuntu/ms_voice/speechsdk/include/cxx_api
   /home/ubuntu/ms_voice/speechsdk/include/c_api)
 # Fix
-target_link_libraries(action_server
+target_link_libraries(${server_library_name}
   /home/ubuntu/ms_voice/speechsdk/lib/arm64/libMicrosoft.CognitiveServices.Speech.core.so
   -lusb-1.0)
 
-#target_compile_definitions(action_server
+#target_compile_definitions(${server_library_name}
 #  PRIVATE "ACTION_TUTORIALS_CPP_BUILDING_DLL")
 
-ament_target_dependencies(action_server
+ament_target_dependencies(${server_library_name}
   "speech_action_interfaces"
   "rclcpp"
   "rclcpp_action"
   "rclcpp_components")
 
-rclcpp_components_register_node(action_server PLUGIN "speech_input_action_server::SpeechInputActionServer" EXECUTABLE speech_input_action_server)
+rclcpp_components_register_node(${server_library_name} PLUGIN "speech_input_action_server::SpeechInputActionServer" EXECUTABLE speech_input_action_server)
 
 install(TARGETS
-  action_server
+  ${server_library_name}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin)
