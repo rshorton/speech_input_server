@@ -35,11 +35,13 @@ public:
 
     vad_publisher_ = this->create_publisher<std_msgs::msg::Bool>("/speech_detect/vad", 2);
     aoa_publisher_ = this->create_publisher<std_msgs::msg::Int32>("/speech_detect/aoa", 2);
+    ww_publisher_ = this->create_publisher<std_msgs::msg::String>("/speech_detect/wakeword", 2);
 
     RCLCPP_INFO(this->get_logger(), "Initializing speech input processor");
     speech_proc_ = new SpeechInputProc();
     speech_proc_->Open();
     speech_proc_->WakeWordEnable(SpeechInputProc::WakeWordDetector_HeyRobot, true);
+    speech_proc_->WakeWordEnable(SpeechInputProc::WakeWordDetector_HeyAnna, true);
     speech_proc_->SetWakeWordCB(std::bind(&SpeechInputActionServer::wake_word_detected, this, _1));
     speech_proc_->SetRecogizeCB(std::bind(&SpeechInputActionServer::speech_recog_finished, this, _1, _2));
     speech_proc_->SetVADCB(std::bind(&SpeechInputActionServer::voice_detect_change, this, _1));
@@ -49,6 +51,9 @@ public:
   void wake_word_detected(std::string wake_word)
   {
 	  RCLCPP_INFO(this->get_logger(), "Wake word detected: %s", wake_word.c_str());
+	  auto message = std_msgs::msg::String();
+	  message.data = wake_word;
+	  ww_publisher_->publish(message);
   }
 
   void speech_recog_finished(SpeechProcStatus status, std::string text)
@@ -90,6 +95,7 @@ private:
 
   rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr vad_publisher_;
   rclcpp::Publisher<std_msgs::msg::Int32>::SharedPtr aoa_publisher_;
+  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr ww_publisher_;
 
   rclcpp_action::GoalResponse handle_goal(
     const rclcpp_action::GoalUUID & uuid,

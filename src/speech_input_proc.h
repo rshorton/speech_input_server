@@ -20,6 +20,7 @@ class SpeechInputProc
 public:
 
 	static const std::string WakeWordDetector_HeyRobot;
+	static const std::string WakeWordDetector_HeyAnna;
 
 public:
 	SpeechInputProc();

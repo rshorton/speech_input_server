@@ -55,16 +55,25 @@ target_include_directories(${server_library_name} PRIVATE
   <BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   <INSTALL_INTERFACE:include>)
 
-# Fix
-include_directories(/home/ubuntu/ms_voice/speechsdk/include/cxx_api
-  /home/ubuntu/ms_voice/speechsdk/include/c_api)
-# Fix
-target_link_libraries(${server_library_name}
-  /home/ubuntu/ms_voice/speechsdk/lib/arm64/libMicrosoft.CognitiveServices.Speech.core.so
-  -lusb-1.0)
+message( STATUS "Running on: ${CMAKE_HOST_SYSTEM_PROCESSOR}")
 
-#target_compile_definitions(${server_library_name}
-#  PRIVATE "ACTION_TUTORIALS_CPP_BUILDING_DLL")
+# Fix - use a better way to find these
+if( ${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL "aarch64" )
+  # Rpi4
+  include_directories(/home/ubuntu/ms_voice/speechsdk/include/cxx_api
+    /home/ubuntu/ms_voice/speechsdk/include/c_api)
+  target_link_libraries(${server_library_name}
+ 	  /home/ubuntu/ms_voice/speechsdk/lib/arm64/libMicrosoft.CognitiveServices.Speech.core.so
+  	-lusb-1.0)
+else()
+	#laptop
+  include_directories(/home/scott/ms_speech/speechsdk/include/cxx_api
+    /home/scott/ms_speech/speechsdk/include/c_api)
+  target_link_libraries(${server_library_name}
+    /home/scott/ms_speech/speechsdk/lib/x64/libMicrosoft.CognitiveServices.Speech.core.so
+    -lcrypto
+    -l:libasound.so.2)
+endif()
 
 ament_target_dependencies(${server_library_name}
   "speech_action_interfaces"

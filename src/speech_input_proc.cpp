@@ -29,6 +29,7 @@ using std::chrono::duration_cast;
 ////////////////////////////////////////////////////////////////////////
 
 const std::string SpeechInputProc::WakeWordDetector_HeyRobot = "HeyRobot";
+const std::string SpeechInputProc::WakeWordDetector_HeyAnna = "HeyAnna";
 
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
@@ -340,6 +341,7 @@ SpeechInputProc::SpeechInputProc():
 {
 	// fix
 	_installed_wake_word_detectors[WakeWordDetector_HeyRobot] = "/home/ubuntu/ms_voice/2788310f-4ac6-4b58-9210-fe3e44f2a6f8.table";
+	_installed_wake_word_detectors[WakeWordDetector_HeyAnna] = "/home/ubuntu/ms_voice/2beb4831-53c7-4757-b0ea-1ee44b039266.table";
 }
 
 SpeechInputProc::~SpeechInputProc()
