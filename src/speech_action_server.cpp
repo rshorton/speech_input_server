@@ -98,6 +98,7 @@ public:
 
   void speakingActiveCB(std_msgs::msg::Bool::SharedPtr msg)
   {
+	  RCLCPP_INFO(this->get_logger(), "Speaking active msg: %d", msg->data);
 	  speech_proc_->MuteInput(msg->data);
 	  speaking_ = msg->data;
   }
