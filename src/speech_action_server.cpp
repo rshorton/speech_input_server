@@ -37,6 +37,11 @@ public:
     aoa_publisher_ = this->create_publisher<std_msgs::msg::Int32>("/speech_detect/aoa", 2);
     ww_publisher_ = this->create_publisher<std_msgs::msg::String>("/speech_detect/wakeword", 2);
 
+    speech_active_sub_ = this->create_subscription<std_msgs::msg::Bool>("/head/speaking",
+    	rclcpp::SystemDefaultsQoS(),
+		std::bind(&SpeechInputActionServer::speakingActiveCB, this, std::placeholders::_1));
+
+
     RCLCPP_INFO(this->get_logger(), "Initializing speech input processor");
     speech_proc_ = new SpeechInputProc();
     speech_proc_->Open();
@@ -86,6 +91,11 @@ public:
       aoa_publisher_->publish(message);
   }
 
+  void speakingActiveCB(std_msgs::msg::Bool::SharedPtr msg)
+  {
+	  speech_proc_->MuteInput(msg->data);
+  }
+
 private:
   rclcpp_action::Server<Recognize>::SharedPtr action_server_;
 
@@ -96,6 +106,8 @@ private:
   rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr vad_publisher_;
   rclcpp::Publisher<std_msgs::msg::Int32>::SharedPtr aoa_publisher_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr ww_publisher_;
+
+  rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr speech_active_sub_;
 
   rclcpp_action::GoalResponse handle_goal(
     const rclcpp_action::GoalUUID & uuid,

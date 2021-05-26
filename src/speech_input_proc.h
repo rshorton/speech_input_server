@@ -39,6 +39,8 @@ public:
 	void SetVADCB(std::function<void(bool)> callback);
 	void SetAOACB(std::function<void(int32_t)> callback);
 
+	void MuteInput(bool mute);
+
 protected:
 	void Process();
 

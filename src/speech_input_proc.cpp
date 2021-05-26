@@ -38,7 +38,8 @@ class AudioCapture
 {
 public:
 	AudioCapture():
-		_handle(NULL)
+		_handle(NULL),
+		_mute_input(false)
 	{
 
 	}
@@ -128,25 +129,40 @@ public:
 	{
 		int cnt = snd_pcm_readi(_handle, read_buffer, num_frames);
 		if (cnt < 0) {
-//			RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "ERROR: read from audio interface failed, (%s)", snd_strerror(cnt));
+			RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "ERROR: read from audio interface failed, (%s)", snd_strerror(cnt));
 		} else {
 			num_frames = cnt;
-			// Pack the first audio channel to the start of buffer
-			for (int j = 0; j < num_frames; j++) {
-				read_buffer[j] = read_buffer[j*NUM_CHANNELS];
-			}
+
+			if (_mute_input) {
+				memset(read_buffer, 0, num_frames*sizeof(uint16_t));
+				RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Muting audio input");
+			} else {
+				// Pack the first audio channel to the start of buffer
+				for (int j = 0; j < num_frames; j++) {
+					read_buffer[j] = read_buffer[j*NUM_CHANNELS];
+				}
 #if 0
-			if (fpFile) {
-				fwrite(read_buffer, num_frames*2, 1, fpFile);
-				fprintf(stdout, ".");
-			}
+				if (fpFile) {
+					fwrite(read_buffer, num_frames*2, 1, fpFile);
+					fprintf(stdout, ".");
+				}
 #endif
+			}
 		}
 		return cnt;
 	}
 
+	////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////
+
+	void SetMute(bool mute)
+	{
+		_mute_input = mute;
+	}
+
 private:
 	snd_pcm_t* _handle;
+	bool _mute_input;
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -512,6 +528,18 @@ void SpeechInputProc::SetAOACB(std::function<void(int32_t)> callback)
 {
 	const std::lock_guard<std::mutex> lock(_mutex);
 	_aoa_cb = callback;
+}
+
+
+////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////
+
+void SpeechInputProc::MuteInput(bool mute)
+{
+	const std::lock_guard<std::mutex> lock(_mutex);
+	if (_audio_capture) {
+		_audio_capture->SetMute(mute);
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////
