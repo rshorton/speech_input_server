@@ -22,7 +22,8 @@ public:
 
   explicit SpeechInputActionServer(const rclcpp::NodeOptions & options = rclcpp::NodeOptions())
   : Node("speech_input_action_server", options),
-	speech_proc_(NULL)
+	speech_proc_(NULL),
+	speaking_(false)
   {
     using namespace std::placeholders;
 
@@ -78,22 +79,27 @@ public:
   void voice_detect_change(bool voice_detected)
   {
 	  RCLCPP_INFO(this->get_logger(), "Voice detected: %d", voice_detected);
-	  auto message = std_msgs::msg::Bool();
-      message.data = voice_detected;
-      vad_publisher_->publish(message);
+	  if (!speaking_) {
+		  auto message = std_msgs::msg::Bool();
+		  message.data = voice_detected;
+		  vad_publisher_->publish(message);
+	  }
   }
 
   void angle_of_arrival_change(int32_t angle)
   {
 	  RCLCPP_INFO(this->get_logger(), "Angle of Arrival: %d", angle);
-	  auto message = std_msgs::msg::Int32();
-      message.data = angle;
-      aoa_publisher_->publish(message);
+	  if (!speaking_) {
+		  auto message = std_msgs::msg::Int32();
+		  message.data = angle;
+		  aoa_publisher_->publish(message);
+	  }
   }
 
   void speakingActiveCB(std_msgs::msg::Bool::SharedPtr msg)
   {
 	  speech_proc_->MuteInput(msg->data);
+	  speaking_ = msg->data;
   }
 
 private:
@@ -108,6 +114,8 @@ private:
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr ww_publisher_;
 
   rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr speech_active_sub_;
+
+  bool speaking_;
 
   rclcpp_action::GoalResponse handle_goal(
     const rclcpp_action::GoalUUID & uuid,

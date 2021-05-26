@@ -135,7 +135,6 @@ public:
 
 			if (_mute_input) {
 				memset(read_buffer, 0, num_frames*sizeof(uint16_t));
-				RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Muting audio input");
 			} else {
 				// Pack the first audio channel to the start of buffer
 				for (int j = 0; j < num_frames; j++) {
