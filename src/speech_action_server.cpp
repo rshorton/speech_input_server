@@ -2,6 +2,7 @@
 #include <memory>
 
 #include "speech_action_interfaces/action/recognize.hpp"
+#include "speech_action_interfaces/msg/wakeword.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
 #include "std_msgs/msg/string.hpp"
@@ -36,7 +37,7 @@ public:
 
     vad_publisher_ = this->create_publisher<std_msgs::msg::Bool>("/speech_detect/vad", 2);
     aoa_publisher_ = this->create_publisher<std_msgs::msg::Int32>("/speech_detect/aoa", 2);
-    ww_publisher_ = this->create_publisher<std_msgs::msg::String>("/speech_detect/wakeword", 2);
+    ww_publisher_ = this->create_publisher<speech_action_interfaces::msg::Wakeword>("/speech_detect/wakeword", 2);
 
     speech_active_sub_ = this->create_subscription<std_msgs::msg::Bool>("/head/speaking",
     	rclcpp::SystemDefaultsQoS(),
@@ -57,8 +58,9 @@ public:
   void wake_word_detected(std::string wake_word)
   {
 	  RCLCPP_INFO(this->get_logger(), "Wake word detected: %s", wake_word.c_str());
-	  auto message = std_msgs::msg::String();
-	  message.data = wake_word;
+	  auto message = speech_action_interfaces::msg::Wakeword();
+	  message.stamp = this->now();
+	  message.word = wake_word;
 	  ww_publisher_->publish(message);
   }
 
@@ -112,7 +114,7 @@ private:
 
   rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr vad_publisher_;
   rclcpp::Publisher<std_msgs::msg::Int32>::SharedPtr aoa_publisher_;
-  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr ww_publisher_;
+  rclcpp::Publisher<speech_action_interfaces::msg::Wakeword>::SharedPtr ww_publisher_;
 
   rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr speech_active_sub_;
 
