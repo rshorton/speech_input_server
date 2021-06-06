@@ -36,6 +36,7 @@ public:
 	SpeechProcStatus RecognizeStop();
 	void SetRecogizeCB(std::function<void(SpeechProcStatus, std::string)> callback);
 
+	void SetListeningCB(std::function<void(bool)> callback);
 	void SetVADCB(std::function<void(bool)> callback);
 	void SetAOACB(std::function<void(int32_t)> callback);
 
@@ -49,6 +50,7 @@ private:
 	bool _run;
 	std::function<void(std::string)> _ww_cb;
 	std::function<void(SpeechProcStatus, std::string)> _recog_cb;
+	std::function<void(bool)> _listening_cb;
 	std::function<void(bool)> _vad_cb;
 	std::function<void(int32_t)> _aoa_cb;
 

@@ -35,6 +35,7 @@ public:
       std::bind(&SpeechInputActionServer::handle_cancel, this, _1),
       std::bind(&SpeechInputActionServer::handle_accepted, this, _1));
 
+    listening_publisher_ = this->create_publisher<std_msgs::msg::Bool>("/speech_detect/listening", 2);
     vad_publisher_ = this->create_publisher<std_msgs::msg::Bool>("/speech_detect/vad", 2);
     aoa_publisher_ = this->create_publisher<std_msgs::msg::Int32>("/speech_detect/aoa", 2);
     ww_publisher_ = this->create_publisher<speech_action_interfaces::msg::Wakeword>("/speech_detect/wakeword", 2);
@@ -78,6 +79,14 @@ public:
 	  goal_handle_->succeed(result);
   }
 
+  void listening_change(bool listening)
+  {
+	  RCLCPP_INFO(this->get_logger(), "Change in listening state: %d", listening);
+	  auto message = std_msgs::msg::Bool();
+	  message.data = listening;
+	  vad_publisher_->publish(message);
+  }
+
   void voice_detect_change(bool voice_detected)
   {
 	  RCLCPP_INFO(this->get_logger(), "Voice detected: %d", voice_detected);
@@ -112,6 +121,7 @@ private:
 
   SpeechInputProc *speech_proc_;
 
+  rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr listening_publisher_;
   rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr vad_publisher_;
   rclcpp::Publisher<std_msgs::msg::Int32>::SharedPtr aoa_publisher_;
   rclcpp::Publisher<speech_action_interfaces::msg::Wakeword>::SharedPtr ww_publisher_;

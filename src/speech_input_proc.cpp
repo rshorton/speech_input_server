@@ -479,6 +479,8 @@ SpeechProcStatus SpeechInputProc::RecognizeStart()
 	RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Starting speech recognition");
 
 	const std::lock_guard<std::mutex> lock(_mutex);
+	_listening_cb(true);
+
 	if (_recog_detector == nullptr) {
 		_recog_detector = new RecogitionDetector();
 	}
@@ -489,6 +491,8 @@ SpeechProcStatus SpeechInputProc::RecognizeStart()
 		return SpeechProcStatus_Ok;
 	}
 	RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Failed to start speech recognition");
+	_listening_cb(false);
+
 	return SpeechProcStatus_Error;
 }
 
@@ -509,6 +513,15 @@ void SpeechInputProc::SetRecogizeCB(std::function<void(SpeechProcStatus, std::st
 {
 	const std::lock_guard<std::mutex> lock(_mutex);
 	_recog_cb = callback;
+}
+
+////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////
+
+void SpeechInputProc::SetListeningCB(std::function<void(bool)> callback)
+{
+	const std::lock_guard<std::mutex> lock(_mutex);
+	_listening_cb = callback;
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -590,6 +603,7 @@ void SpeechInputProc::Process()
 			if (_recog_detector) {
 				auto ret = _recog_detector->ProcessData((uint8_t*)read_buffer, frames_read*2);
 				if (ret == SpeechDetStatus_Done) {
+					_listening_cb(false);
 					_mic_led_ring->SetRingMode(RespeakerPixelRing::pixel_ring_mode_listen);
 
 					std::string text;
