@@ -52,6 +52,7 @@ public:
     speech_proc_->WakeWordEnable(SpeechInputProc::WakeWordDetector_HeyAnna, true);
     speech_proc_->SetWakeWordCB(std::bind(&SpeechInputActionServer::wake_word_detected, this, _1));
     speech_proc_->SetRecogizeCB(std::bind(&SpeechInputActionServer::speech_recog_finished, this, _1, _2));
+    speech_proc_->SetListeningCB(std::bind(&SpeechInputActionServer::listening_change, this, _1));
     speech_proc_->SetVADCB(std::bind(&SpeechInputActionServer::voice_detect_change, this, _1));
     speech_proc_->SetAOACB(std::bind(&SpeechInputActionServer::angle_of_arrival_change, this, _1));
   }
