@@ -85,7 +85,7 @@ public:
 	  RCLCPP_INFO(this->get_logger(), "Change in listening state: %d", listening);
 	  auto message = std_msgs::msg::Bool();
 	  message.data = listening;
-	  vad_publisher_->publish(message);
+	  listening_publisher_->publish(message);
   }
 
   void voice_detect_change(bool voice_detected)
