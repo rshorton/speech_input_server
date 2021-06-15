@@ -50,6 +50,7 @@ public:
     speech_proc_->Open();
     speech_proc_->WakeWordEnable(SpeechInputProc::WakeWordDetector_HeyRobot, true);
     speech_proc_->WakeWordEnable(SpeechInputProc::WakeWordDetector_HeyAnna, true);
+    speech_proc_->WakeWordEnable(SpeechInputProc::WakeWordDetector_HeyElsaBot, true);
     speech_proc_->SetWakeWordCB(std::bind(&SpeechInputActionServer::wake_word_detected, this, _1));
     speech_proc_->SetRecogizeCB(std::bind(&SpeechInputActionServer::speech_recog_finished, this, _1, _2));
     speech_proc_->SetListeningCB(std::bind(&SpeechInputActionServer::listening_change, this, _1));
