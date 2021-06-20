@@ -19,11 +19,12 @@ using std::chrono::milliseconds;
 using std::chrono::seconds;
 using std::chrono::duration_cast;
 
-#define AUDIO_DEVICE		"hw:2"
 #define SAMPLE_RATE         16000       // input sampling rate (filters assume this rate)
 #define SAMPLE_BITS         16          // 16 bits per sample is the max size for the PDM MIC input
 #define NUM_CHANNELS		6			// Respeaker outputs 6 channels
 #define FRAMES_PER_READ		160			// Number of audio frames per read
+
+const std::string RESPEAKER_MIC_ARRAY_CARD_NAME = "ReSpeaker 4 Mic Array";
 
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
@@ -350,10 +351,7 @@ private:
 
 SpeechInputProc::SpeechInputProc():
 		_open(false),
-		_run(false),
-		_recog_detector(nullptr),
-		_mic_led_ring(nullptr),
-		_audio_capture(nullptr)
+		_run(false)
 {
 	// fix
 	_installed_wake_word_detectors[WakeWordDetector_HeyRobot] = "/home/ubuntu/ms_voice/2788310f-4ac6-4b58-9210-fe3e44f2a6f8.table";
@@ -364,12 +362,6 @@ SpeechInputProc::SpeechInputProc():
 SpeechInputProc::~SpeechInputProc()
 {
 	Close();
-	if (_recog_detector) {
-		delete _recog_detector;
-	}
-	for (const auto & wwd: _wake_detectors) {
-		delete wwd.second;
-	}
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -381,28 +373,42 @@ SpeechProcStatus SpeechInputProc::Open()
 		return SpeechProcStatus_Error;
 	}
 
-	_audio_capture = new AudioCapture();
+	int cardNum = FindCard(RESPEAKER_MIC_ARRAY_CARD_NAME);
+	if (cardNum == -1) {
+		RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "ERROR; Could not find Respeaker mic device\n");
+        return SpeechProcStatus_Error;
+	}
 
-	int ret = _audio_capture->Open(AUDIO_DEVICE, SAMPLE_RATE);
+	_audio_capture = std::make_unique<AudioCapture>();
+
+	stringstream device;
+	device << "hw:" << cardNum;
+	int ret = _audio_capture->Open(device.str().c_str(), SAMPLE_RATE);
 	if (ret) {
 		RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "ERROR; Could not open audio capture device (%s)\n", snd_strerror(ret));
         return SpeechProcStatus_Error;
 	}
 
-	_mic_led_ring = new RespeakerPixelRing();
-	ret = _mic_led_ring->Open();
-	if (ret) {
-		RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "ERROR; Could not open Respeaker LED device (%d)\n", ret);
-        _audio_capture->Close();
-        return SpeechProcStatus_Error;
+	_mic_led_ring = std::make_unique<RespeakerPixelRing>();
+	if (_mic_led_ring != nullptr) {
+		do {
+			ret = _mic_led_ring->Open();
+			if (ret) {
+				RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "ERROR; Could not open Respeaker LED device (%d)\n", ret);
+				break;
+			}
+			_mic_led_ring->SetRingMode(RespeakerPixelRing::pixel_ring_mode_listen);
+
+			// Start thread to do the processing
+			_run = true;
+			_proc_thread = std::thread{std::bind(&SpeechInputProc::Process, this)};
+
+			return SpeechProcStatus_Ok;
+		} while(0);
 	}
-	_mic_led_ring->SetRingMode(RespeakerPixelRing::pixel_ring_mode_listen);
-
-	// Start thread to do the processing
-	_run = true;
-	_proc_thread = std::thread{std::bind(&SpeechInputProc::Process, this)};
-
-	return SpeechProcStatus_Ok;
+	_audio_capture->Close();
+	_audio_capture.reset();
+	return SpeechProcStatus_Error;
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -417,19 +423,78 @@ SpeechProcStatus SpeechInputProc::Close()
 	_run = false;
 	_proc_thread.join();
 
-	if (_mic_led_ring) {
+	if (_mic_led_ring != nullptr) {
 		_mic_led_ring->Close();
-		delete _mic_led_ring;
-		_mic_led_ring = NULL;
+		_mic_led_ring.reset();
 	}
 
-	if (_audio_capture) {
+	if (_audio_capture != nullptr) {
 		_audio_capture->Close();
-		delete _audio_capture;
-		_audio_capture = NULL;
+		_audio_capture.reset();
 	}
 	_open = false;
 	return SpeechProcStatus_Ok;
+}
+
+////////////////////////////////////////////////////////////////////////
+// Find audio card by name
+// Based on Source from https://gist.github.com/dontknowmyname/4536535
+////////////////////////////////////////////////////////////////////////
+
+int SpeechInputProc::FindCard(const std::string cardName)
+{
+	int err;
+	int cardNum = -1;
+
+	for (;;) {
+		snd_ctl_t *cardHandle;
+
+		// Get next sound card's card number.
+		// When "cardNum" == -1, then ALSA
+		// fetches the first card
+		if ((err = snd_card_next(&cardNum)) < 0) {
+			break;
+		}
+
+		// No more cards? ALSA sets "cardNum" to -1 if so
+		if (cardNum < 0) break;
+
+		// Open this card's (cardNum's) control interface.
+		// We specify only the card number -- not any device nor sub-device too
+		{
+			stringstream ss;
+			ss << "hw:" << cardNum;
+			if ((err = snd_ctl_open(&cardHandle, ss.str().c_str(), 0)) < 0)	//Now cardHandle becomes your sound card.
+			{
+				RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "Can't open card %i: %s\n", cardNum, snd_strerror(err));
+				continue;
+			}
+		}
+
+		{
+			snd_ctl_card_info_t *cardInfo;	//Used to hold card information
+			//We need to get a snd_ctl_card_info_t. Just alloc it on the stack
+			snd_ctl_card_info_alloca(&cardInfo);
+			//Tell ALSA to fill in our snd_ctl_card_info_t with info about this card
+			if ((err = snd_ctl_card_info(cardHandle, cardInfo)) < 0) {
+				RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "Can't get info for card %i: %s\n", cardNum, snd_strerror(err));
+			} else {
+				const char* name = snd_ctl_card_info_get_name(cardInfo);
+				RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Card %i = %s\n", cardNum, name);
+				if (!cardName.compare(0, strlen(name), snd_ctl_card_info_get_name(cardInfo), cardName.length())) {
+					break;
+				}
+			}
+		}
+		// Close the card's control interface after we're done with it
+		snd_ctl_close(cardHandle);
+	}
+
+	//ALSA allocates some mem to load its config file when we call some of the
+	//above functions. Now that we're done getting the info, let's tell ALSA
+	//to unload the info and free up that mem
+	snd_config_update_free_global();
+	return cardNum;
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -450,7 +515,7 @@ SpeechProcStatus SpeechInputProc::WakeWordEnable(std::string wake_word, bool bEn
 				return SpeechProcStatus_Ok;
 			}
 			// Create instance
-			WakeWordDetector *wwd = new WakeWordDetector(model);
+			std::shared_ptr<WakeWordDetector> wwd = std::make_shared<WakeWordDetector>(model);
 			if (wwd->Open() == SpeechDetStatus_Ok) {
 				wwd->Enable(true);
 			} else {
@@ -485,12 +550,14 @@ SpeechProcStatus SpeechInputProc::RecognizeStart()
 		_listening_cb(true);
 	}
 	if (_recog_detector == nullptr) {
-		_recog_detector = new RecogitionDetector();
+		_recog_detector = std::make_unique<RecogitionDetector>();
 	}
 	if (_recog_detector->Start() == SpeechDetStatus_Ok) {
 		RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Started speech recognition");
 
-		_mic_led_ring->SetRingMode(RespeakerPixelRing::pixel_ring_mode_spin);
+		if (_mic_led_ring != nullptr) {
+			_mic_led_ring->SetRingMode(RespeakerPixelRing::pixel_ring_mode_spin);
+		}
 		return SpeechProcStatus_Ok;
 	}
 	RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Failed to start speech recognition");
@@ -553,7 +620,7 @@ void SpeechInputProc::SetAOACB(std::function<void(int32_t)> callback)
 void SpeechInputProc::MuteInput(bool mute)
 {
 	const std::lock_guard<std::mutex> lock(_mutex);
-	if (_audio_capture) {
+	if (_audio_capture != nullptr) {
 		_audio_capture->SetMute(mute);
 	}
 }
@@ -563,7 +630,7 @@ void SpeechInputProc::MuteInput(bool mute)
 
 void SpeechInputProc::Process()
 {
-	printf("SpeechProcStatus::Process running\n");
+	RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "SpeechProcStatus::Process running\n");
 
 	int buffer_frames = FRAMES_PER_READ;
 	int buffer_size = buffer_frames * SAMPLE_BITS / 8 * NUM_CHANNELS;
@@ -604,14 +671,15 @@ void SpeechInputProc::Process()
 				}
 			}
 			// Speech recognition
-			if (_recog_detector) {
+			if (_recog_detector != nullptr) {
 				auto ret = _recog_detector->ProcessData((uint8_t*)read_buffer, frames_read*2);
 				if (ret == SpeechDetStatus_Done) {
 					if (_listening_cb != nullptr) {
 						_listening_cb(false);
 					}
-					_mic_led_ring->SetRingMode(RespeakerPixelRing::pixel_ring_mode_listen);
-
+					if (_mic_led_ring != nullptr) {
+						_mic_led_ring->SetRingMode(RespeakerPixelRing::pixel_ring_mode_listen);
+					}
 					std::string text;
 					if (_recog_detector->GetResult(text)) {
 						RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Speech detected: %s", text.c_str());
@@ -633,10 +701,10 @@ void SpeechInputProc::Process()
 				RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Failed to read audio samples (%s)", snd_strerror(frames_read));
 			}
 		}
-#if 1
+
 		// Periodically update VAD and AOA status
 		if (update_period) {
-			if (_mic_led_ring) {
+			if (_mic_led_ring != nullptr) {
 				int val = _mic_led_ring->ReadVAD();
 				if (_vad_cb != nullptr &&
 					(val != vad || firstVAD)) {
@@ -654,7 +722,6 @@ void SpeechInputProc::Process()
 				aoa = val;
 			}
 		}
-#endif
 		update_period = false;
 	}
 

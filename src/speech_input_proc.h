@@ -45,6 +45,7 @@ public:
 
 protected:
 	void Process();
+	int FindCard(const std::string cardName);
 
 private:
 	bool _open;
@@ -55,11 +56,11 @@ private:
 	std::function<void(bool)> _vad_cb;
 	std::function<void(int32_t)> _aoa_cb;
 
-	std::map<std::string, WakeWordDetector*> _wake_detectors;
-	RecogitionDetector *_recog_detector;
+	std::map<std::string, std::shared_ptr<WakeWordDetector>> _wake_detectors;
+	std::unique_ptr<RecogitionDetector> _recog_detector;
 
-	RespeakerPixelRing *_mic_led_ring;
-	AudioCapture *_audio_capture;
+	std::unique_ptr<RespeakerPixelRing> _mic_led_ring;
+	std::unique_ptr<AudioCapture> _audio_capture;
 
 	std::thread _proc_thread;
 	std::mutex _mutex;
