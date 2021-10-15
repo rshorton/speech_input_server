@@ -67,12 +67,14 @@ if( ${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL "aarch64" )
   	-lusb-1.0)
 else()
 	#laptop
-  include_directories(/home/scott/ms_speech/speechsdk/include/cxx_api
-    /home/scott/ms_speech/speechsdk/include/c_api)
+  include_directories(/home/elsabot/ms_voice/speechsdk/include/cxx_api
+    /home/elsabot/ms_voice/speechsdk/include/c_api)
   target_link_libraries(${server_library_name}
-    /home/scott/ms_speech/speechsdk/lib/x64/libMicrosoft.CognitiveServices.Speech.core.so
+    /home/elsabot/ms_voice/speechsdk/lib/x64/libMicrosoft.CognitiveServices.Speech.core.so
     -lcrypto
-    -l:libasound.so.2)
+    -l:libasound.so.2
+   	-lusb-1.0)
+
 endif()
 
 ament_target_dependencies(${server_library_name}
