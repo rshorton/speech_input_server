@@ -37,6 +37,7 @@ public:
 	static const std::string WakeWordDetector_HeyRobot;
 	static const std::string WakeWordDetector_HeyAnna;
 	static const std::string WakeWordDetector_HeyElsaBot;
+	static const std::string WakeWordDetector_Elsa;
 
 public:
 	SpeechInputProc();
@@ -46,7 +47,7 @@ public:
 	SpeechProcStatus Close();
 
 	SpeechProcStatus WakeWordEnable(std::string wake_word, bool bEnable);
-	void SetWakeWordCB(std::function<void(std::string)> callback);
+	void SetWakeWordCB(std::function<void(std::string, int32_t angle)> callback);
 
 	SpeechProcStatus RecognizeStart();
 	SpeechProcStatus RecognizeStop();
@@ -65,7 +66,7 @@ protected:
 private:
 	bool _open;
 	bool _run;
-	std::function<void(std::string)> _ww_cb;
+	std::function<void(std::string, int32_t angle)> _ww_cb;
 	std::function<void(SpeechProcStatus, std::string)> _recog_cb;
 	std::function<void(bool)> _listening_cb;
 	std::function<void(bool)> _vad_cb;

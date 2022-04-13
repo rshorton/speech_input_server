@@ -67,20 +67,23 @@ public:
     speech_proc_->Open();
     //speech_proc_->WakeWordEnable(SpeechInputProc::WakeWordDetector_HeyRobot, true);
     //speech_proc_->WakeWordEnable(SpeechInputProc::WakeWordDetector_HeyAnna, true);
-    speech_proc_->WakeWordEnable(SpeechInputProc::WakeWordDetector_HeyElsaBot, true);
-    speech_proc_->SetWakeWordCB(std::bind(&SpeechInputActionServer::wake_word_detected, this, _1));
+    //speech_proc_->WakeWordEnable(SpeechInputProc::WakeWordDetector_HeyElsaBot, true);
+    speech_proc_->WakeWordEnable(SpeechInputProc::WakeWordDetector_Elsa, true);
+
+    speech_proc_->SetWakeWordCB(std::bind(&SpeechInputActionServer::wake_word_detected, this, _1, _2));
     speech_proc_->SetRecogizeCB(std::bind(&SpeechInputActionServer::speech_recog_finished, this, _1, _2));
     speech_proc_->SetListeningCB(std::bind(&SpeechInputActionServer::listening_change, this, _1));
     speech_proc_->SetVADCB(std::bind(&SpeechInputActionServer::voice_detect_change, this, _1));
     speech_proc_->SetAOACB(std::bind(&SpeechInputActionServer::angle_of_arrival_change, this, _1));
   }
 
-  void wake_word_detected(std::string wake_word)
+  void wake_word_detected(std::string wake_word, int32_t angle)
   {
 	  RCLCPP_INFO(this->get_logger(), "Wake word detected: %s", wake_word.c_str());
 	  auto message = speech_action_interfaces::msg::Wakeword();
 	  message.stamp = this->now();
 	  message.word = wake_word;
+    message.angle = angle;
 	  ww_publisher_->publish(message);
   }
 

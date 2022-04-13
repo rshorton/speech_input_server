@@ -47,6 +47,7 @@ const std::string RESPEAKER_MIC_ARRAY_CARD_NAME = "ReSpeaker 4 Mic Array";
 const std::string SpeechInputProc::WakeWordDetector_HeyRobot = "HeyRobot";
 const std::string SpeechInputProc::WakeWordDetector_HeyAnna = "HeyAnna";
 const std::string SpeechInputProc::WakeWordDetector_HeyElsaBot = "HeyElsaBot";
+const std::string SpeechInputProc::WakeWordDetector_Elsa = "Elsa";
 
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
@@ -372,6 +373,7 @@ SpeechInputProc::SpeechInputProc():
 	_installed_wake_word_detectors[WakeWordDetector_HeyRobot] = "/home/elsabot/ms_voice/2788310f-4ac6-4b58-9210-fe3e44f2a6f8.table";
 	_installed_wake_word_detectors[WakeWordDetector_HeyAnna] = "/home/elsabot/ms_voice/2beb4831-53c7-4757-b0ea-1ee44b039266.table";
 	_installed_wake_word_detectors[WakeWordDetector_HeyElsaBot] = "/home/elsabot/ms_voice/dd5eafaf-9222-4ec6-86b8-1c6b1c18cc57.table";
+	_installed_wake_word_detectors[WakeWordDetector_Elsa] = "/home/elsabot/ms_voice/2bf1166a-0dbd-43ea-a08e-b3456a06a446.table";
 }
 
 SpeechInputProc::~SpeechInputProc()
@@ -547,7 +549,7 @@ SpeechProcStatus SpeechInputProc::WakeWordEnable(std::string wake_word, bool bEn
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
 
-void SpeechInputProc::SetWakeWordCB(std::function<void(std::string)> callback)
+void SpeechInputProc::SetWakeWordCB(std::function<void(std::string, int32_t angle)> callback)
 {
 	const std::lock_guard<std::mutex> lock(_mutex);
 	_ww_cb = callback;
@@ -679,7 +681,7 @@ void SpeechInputProc::Process()
 				if (ret == SpeechDetStatus_Done) {
 					RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Detected wake word (%s)", wwd.first.c_str());
 					if (_ww_cb != nullptr) {
-						_ww_cb(wwd.first);
+						_ww_cb(wwd.first, _mic_led_ring->ReadDOA());
 					}
 				} else if (ret == SpeechDetStatus_Error) {
 					RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "WW detection error for (%s)", wwd.first.c_str());
