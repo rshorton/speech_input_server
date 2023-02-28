@@ -76,9 +76,8 @@ private:
   rclcpp_action::Client<Recognize>::SharedPtr client_ptr_;
   rclcpp::TimerBase::SharedPtr timer_;
 
-  void goal_response_callback(std::shared_future<GoalHandleRecognize::SharedPtr> future)
+  void goal_response_callback(const GoalHandleRecognize::SharedPtr & goal_handle)
   {
-    auto goal_handle = future.get();
     if (!goal_handle) {
       RCLCPP_ERROR(this->get_logger(), "Goal was rejected by server");
     } else {

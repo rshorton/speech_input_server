@@ -29,6 +29,7 @@ find_package(speech_action_interfaces REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_action REQUIRED)
 find_package(rclcpp_components REQUIRED)
+find_package(std_msgs REQUIRED)
 
 set(client_library_name speech_input_client)
 
@@ -43,7 +44,8 @@ ament_target_dependencies(${client_library_name}
   "speech_action_interfaces"
   "rclcpp"
   "rclcpp_action"
-  "rclcpp_components")
+  "rclcpp_components"
+  "std_msgs")
 
 rclcpp_components_register_node(${client_library_name} PLUGIN "speech_input_action_server::RecognizeActionClient" EXECUTABLE speech_input_action_client)
 install(TARGETS
@@ -86,7 +88,8 @@ ament_target_dependencies(${server_library_name}
   "speech_action_interfaces"
   "rclcpp"
   "rclcpp_action"
-  "rclcpp_components")
+  "rclcpp_components"
+  "std_msgs")
 
 rclcpp_components_register_node(${server_library_name} PLUGIN "speech_input_action_server::SpeechInputActionServer" EXECUTABLE speech_input_action_server)
 
