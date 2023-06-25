@@ -44,14 +44,6 @@ const std::string RESPEAKER_MIC_ARRAY_CARD_NAME = "ReSpeaker 4 Mic Array";
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
 
-const std::string SpeechInputProc::WakeWordDetector_HeyRobot = "HeyRobot";
-const std::string SpeechInputProc::WakeWordDetector_HeyAnna = "HeyAnna";
-const std::string SpeechInputProc::WakeWordDetector_HeyElsaBot = "HeyElsaBot";
-const std::string SpeechInputProc::WakeWordDetector_Elsa = "Elsa";
-
-////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////
-
 class AudioCapture
 {
 public:
@@ -369,11 +361,6 @@ SpeechInputProc::SpeechInputProc():
 		_open(false),
 		_run(false)
 {
-	// fix
-	_installed_wake_word_detectors[WakeWordDetector_HeyRobot] = "/home/elsabot/ms_voice/2788310f-4ac6-4b58-9210-fe3e44f2a6f8.table";
-	_installed_wake_word_detectors[WakeWordDetector_HeyAnna] = "/home/elsabot/ms_voice/2beb4831-53c7-4757-b0ea-1ee44b039266.table";
-	_installed_wake_word_detectors[WakeWordDetector_HeyElsaBot] = "/home/elsabot/ms_voice/dd5eafaf-9222-4ec6-86b8-1c6b1c18cc57.table";
-	_installed_wake_word_detectors[WakeWordDetector_Elsa] = "/home/elsabot/ms_voice/2bf1166a-0dbd-43ea-a08e-b3456a06a446.table";
 }
 
 SpeechInputProc::~SpeechInputProc()
@@ -536,7 +523,7 @@ SpeechProcStatus SpeechInputProc::WakeWordEnable(std::string wake_word, bool bEn
 			if (wwd->Open() == SpeechDetStatus_Ok) {
 				wwd->Enable(true);
 			} else {
-				RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Failed to create wake word detector (%s)", wake_word.c_str());
+				RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "Failed to create wake word detector (%s)", wake_word.c_str());
 				return SpeechProcStatus_Error;
 			}
 			_wake_detectors[wake_word] = wwd;
@@ -545,6 +532,33 @@ SpeechProcStatus SpeechInputProc::WakeWordEnable(std::string wake_word, bool bEn
 	}
 	return SpeechProcStatus_Error;
 }
+
+////////////////////////////////////////////////////////////////////////
+// Install and enable the specified wake word.  The wake word parameter is the
+// file path of the wake word model file created using the Azure Speech
+// studio.  The format of the file is:
+// <wake_word_description>:<model filename>.table
+//  where 'wake_word_description' - is the id string for the wake word.
+//        'model_filename' - name of the file downloaded from Speech
+//            studio.  The name of the downloaded file is maintained
+//            in the name to make it easier to keep track the models in use.
+////////////////////////////////////////////////////////////////////////
+
+SpeechProcStatus SpeechInputProc::WakeWordInstall(const std::string &wake_word_file)
+{
+	auto pos = wake_word_file.find(':');
+	if (pos == std::string::npos) {
+		RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "Invalid wake word file name (%s)", wake_word_file.c_str());
+		return SpeechProcStatus_Error;
+	}
+
+	auto desc = wake_word_file.substr(0, pos);
+	auto dir_end = desc.find_last_of('/');
+	desc = desc.substr(dir_end + 1);
+
+	_installed_wake_word_detectors[desc] = wake_word_file;
+	return WakeWordEnable(desc, true);
+}	
 
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////

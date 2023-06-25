@@ -65,10 +65,19 @@ public:
     RCLCPP_INFO(this->get_logger(), "Initializing speech input processor");
     speech_proc_ = new SpeechInputProc();
     speech_proc_->Open();
-    //speech_proc_->WakeWordEnable(SpeechInputProc::WakeWordDetector_HeyRobot, true);
-    //speech_proc_->WakeWordEnable(SpeechInputProc::WakeWordDetector_HeyAnna, true);
-    //speech_proc_->WakeWordEnable(SpeechInputProc::WakeWordDetector_HeyElsaBot, true);
-    speech_proc_->WakeWordEnable(SpeechInputProc::WakeWordDetector_Elsa, true);
+
+    auto param_desc = rcl_interfaces::msg::ParameterDescriptor{};
+    param_desc.description = "Wake word model file";
+
+    this->declare_parameter("wake_word", std::string(), param_desc);
+    std::string wake_word_path = this->get_parameter("wake_word").as_string();
+
+    if (wake_word_path.size()) {
+      speech_proc_->WakeWordInstall(wake_word_path);
+      RCLCPP_INFO(this->get_logger(), "Wake word setup using: %s", wake_word_path.c_str());
+    } else {
+      RCLCPP_INFO(this->get_logger(), "No wake word specified");
+    }
 
     speech_proc_->SetWakeWordCB(std::bind(&SpeechInputActionServer::wake_word_detected, this, _1, _2));
     speech_proc_->SetRecogizeCB(std::bind(&SpeechInputActionServer::speech_recog_finished, this, _1, _2));

@@ -33,19 +33,13 @@ enum SpeechProcStatus {
 class SpeechInputProc
 {
 public:
-
-	static const std::string WakeWordDetector_HeyRobot;
-	static const std::string WakeWordDetector_HeyAnna;
-	static const std::string WakeWordDetector_HeyElsaBot;
-	static const std::string WakeWordDetector_Elsa;
-
-public:
 	SpeechInputProc();
 	~SpeechInputProc();
 
 	SpeechProcStatus Open();
 	SpeechProcStatus Close();
 
+	SpeechProcStatus WakeWordInstall(const std::string &wake_word_file);
 	SpeechProcStatus WakeWordEnable(std::string wake_word, bool bEnable);
 	void SetWakeWordCB(std::function<void(std::string, int32_t angle)> callback);
 

@@ -101,6 +101,7 @@ install(TARGETS
 
 install(DIRECTORY
   launch
+  wake_words
   DESTINATION share/${PROJECT_NAME}
 )
 
