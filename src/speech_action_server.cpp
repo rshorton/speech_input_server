@@ -185,10 +185,10 @@ private:
     const auto goal = goal_handle->get_goal();
 
     if (speech_proc_->RecognizeStart() == SpeechProcStatus_Error) {
-	  auto result = std::make_shared<Recognize::Result>();
-	  result->text = "ERROR";
-	  goal_handle_->succeed(result);
-	  RCLCPP_INFO(this->get_logger(), "Goal failed to start");
+	    auto result = std::make_shared<Recognize::Result>();
+	    result->text = "ERROR";
+	    goal_handle_->succeed(result);
+	    RCLCPP_INFO(this->get_logger(), "Goal failed to start");
     }
   }
 
