@@ -7,3 +7,7 @@ A Microsoft Azure account is required to use this node.  After setting up the sp
 export MS_COGNTIVE_SUB_KEY=[your key]
 
 export MS_COGNTIVE_SUB_REGION=[your region]
+
+Required to build package:
+
+    sudo apt-get install libusb-1.0-0-dev
