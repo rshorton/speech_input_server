@@ -73,7 +73,7 @@ include_directories(
 
 if( ${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL "aarch64" )
   target_link_libraries(${server_library_name}
-    $ENV{SPEECH_SDK_PATH}/lib/x64/libMicrosoft.CognitiveServices.Speech.core.so
+    $ENV{SPEECH_SDK_PATH}/lib/arm64/libMicrosoft.CognitiveServices.Speech.core.so
  	  -lusb-1.0)
 else()
 	#x86
