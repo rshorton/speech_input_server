@@ -165,7 +165,7 @@ private:
     const rclcpp_action::GoalUUID & uuid,
     std::shared_ptr<const Recognize::Goal> goal)
   {
-    RCLCPP_INFO(this->get_logger(), "Received goal request with timeout %d", goal->timeout);
+    RCLCPP_INFO(this->get_logger(), "Received goal request with max_speech_duration %d", goal->max_speech_duration);
     (void)uuid;
     return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
   }
