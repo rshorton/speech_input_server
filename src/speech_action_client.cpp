@@ -58,7 +58,7 @@ public:
     }
 
     auto goal_msg = Recognize::Goal();
-    goal_msg.timeout = 10;
+    goal_msg.max_speech_duration = 10;
 
     RCLCPP_INFO(this->get_logger(), "Sending goal");
 
